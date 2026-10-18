@@ -1,0 +1,65 @@
+{
+  "services": {
+    "api-1": {
+      "build": {
+        "context": "${BACKEND_PATH:-../ai-it-service-desk}",
+        "dockerfile": "src/backend/ServiceDesk.Api/Dockerfile"
+      },
+      "ports": [
+        "127.0.0.1:5000:8080"
+      ]
+    },
+    "api-2": {
+      "build": {
+        "context": "${BACKEND_PATH:-../ai-it-service-desk}",
+        "dockerfile": "src/backend/ServiceDesk.Api/Dockerfile"
+      },
+      "ports": [
+        "127.0.0.1:5001:8080"
+      ]
+    },
+    "worker": {
+      "build": {
+        "context": "${BACKEND_PATH:-../ai-it-service-desk}",
+        "dockerfile": "src/backend/ServiceDesk.Worker/Dockerfile"
+      }
+    },
+    "migrate": {
+      "build": {
+        "context": "${BACKEND_PATH:-../ai-it-service-desk}",
+        "dockerfile": "src/backend/ServiceDesk.Database/Dockerfile"
+      },
+      "environment": {
+        "SeedDemo__Enabled": "true",
+        "SeedDemo__Password": "${DEMO_PASSWORD:?Set DEMO_PASSWORD}"
+      }
+    },
+    "seed-roles": {
+      "build": {
+        "context": "${BACKEND_PATH:-../ai-it-service-desk}",
+        "dockerfile": "src/backend/ServiceDesk.Database/Dockerfile"
+      }
+    },
+    "frontend": {
+      "build": {
+        "context": "${WEB_PATH:-../ai-it-service-desk-web}",
+        "dockerfile": "Dockerfile"
+      }
+    },
+    "minio": {
+      "build": {
+        "context": ".",
+        "dockerfile": "deploy/minio/Dockerfile"
+      },
+      "ports": [
+        "127.0.0.1:9000:9000",
+        "127.0.0.1:9001:9001"
+      ]
+    },
+    "postgres": {
+      "ports": [
+        "127.0.0.1:5432:5432"
+      ]
+    }
+  }
+}
