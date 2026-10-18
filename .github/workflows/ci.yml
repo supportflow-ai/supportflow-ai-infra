@@ -35,6 +35,10 @@ jobs:
           repository: supportflow-ai/ai-it-service-desk-web
           ref: ${{ steps.sources.outputs.web }}
           path: _sources/web
+      - name: Set up smoke test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Validate configuration
         run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml config --quiet
       - name: Build and start disposable stack
