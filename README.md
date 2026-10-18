@@ -1,6 +1,6 @@
 # SupportFlow infrastructure
 
-Owns Compose, NGINX gateway, MinIO build, Jenkins infrastructure and whole-system smoke tests.
+Owns Compose, NGINX gateway, MinIO build and whole-system smoke tests through GitHub Actions.
 Backend owns API/Worker/database Dockerfiles and migrations; frontend owns its Dockerfile.
 AI is optional and is not connected in this release.
 
@@ -46,4 +46,23 @@ Back up and validate upgrades in staging. Roll back application images, not data
 
 `sources.lock.json` pins CI source commits. To coordinate a backend release, update this
 file in a reviewed change. No registry push or production deployment occurs in CI.
-Jenkins admin password is required via `JENKINS_ADMIN_PASSWORD`; no default admin secret.
+
+## GitHub Actions
+
+The [Infrastructure stack workflow](.github/workflows/ci.yml) is the sole CI entry point.
+On pushes, pull requests or manual dispatch it validates full 40-character source pins,
+checks out backend/web at those commits, validates Compose, builds and starts a disposable
+stack, runs migration and role setup, explicitly seeds development demo accounts, then
+tests requester flows, frontend and health through the gateway. The `smoke` job prints
+diagnostics and removes its disposable volumes on normal teardown, including test failures.
+
+The workflow uses GitHub-hosted Ubuntu runners with Docker and only `contents: read`.
+It requires no Jenkins server or registry secrets. Build images remain on the runner;
+publishing images and deploying production are outside this pipeline's scope.
+Update `sources.lock.json` in a reviewed PR for coordinated releases. Source repository
+CI validates backend and frontend independently; this repo validates their integration.
+
+After merge, administrators should replace any required Jenkins check with the Actions
+`smoke` check, disable obsolete Jenkins jobs/webhooks, and retire external Jenkins only
+after checking other dependencies. This change removes configuration from Git, not any
+existing server or its volumes.

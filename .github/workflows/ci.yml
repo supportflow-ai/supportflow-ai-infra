@@ -2,6 +2,9 @@ name: Infrastructure stack
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   smoke:
     runs-on: ubuntu-24.04
@@ -11,11 +14,14 @@ jobs:
       WEB_PATH: ./_sources/web
     steps:
       - uses: actions/checkout@v4
-      - id: sources
+      - name: Read immutable source commits
+        id: sources
         run: |
           python - <<'PY'
-          import json, os
+          import json, os, re
           values=json.load(open('sources.lock.json'))
+          if set(values) != {'backend', 'web'} or any(not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{40}', sha) for sha in values.values()):
+              raise SystemExit('sources.lock.json must pin backend and web to full commit SHAs')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               for name, sha in values.items(): out.write(f'{name}={sha}\n')
           PY
@@ -29,9 +35,6 @@ jobs:
           repository: supportflow-ai/ai-it-service-desk-web
           ref: ${{ steps.sources.outputs.web }}
           path: _sources/web
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Validate configuration
         run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml config --quiet
       - name: Build and start disposable stack
