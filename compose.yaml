@@ -59,7 +59,7 @@
         "migrate"
       ],
       "environment": {
-        "Database__ConnectionString": "Host=postgres;Port=5432;Database=servicedesk;Username=servicedesk;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "Database__ConnectionString": "${MIGRATION_DATABASE_CONNECTION_STRING:?Set migration database credential}",
         "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
       },
       "depends_on": {
@@ -77,7 +77,7 @@
         "seed-roles"
       ],
       "environment": {
-        "Database__ConnectionString": "Host=postgres;Port=5432;Database=servicedesk;Username=servicedesk;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "Database__ConnectionString": "${MIGRATION_DATABASE_CONNECTION_STRING:?Set migration database credential}",
         "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
       },
       "depends_on": {
@@ -99,7 +99,7 @@
       "image": "${API_IMAGE:?Set API_IMAGE}",
       "environment": {
         "ASPNETCORE_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}",
-        "Database__ConnectionString": "Host=postgres;Port=5432;Database=servicedesk;Username=servicedesk;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
         "Jwt__SecretKey": "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}",
         "Jwt__Issuer": "ServiceDesk",
         "Jwt__Audience": "ServiceDeskClient",
@@ -126,7 +126,7 @@
       "image": "${API_IMAGE:?Set API_IMAGE}",
       "environment": {
         "ASPNETCORE_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}",
-        "Database__ConnectionString": "Host=postgres;Port=5432;Database=servicedesk;Username=servicedesk;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
         "Jwt__SecretKey": "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}",
         "Jwt__Issuer": "ServiceDesk",
         "Jwt__Audience": "ServiceDeskClient",
@@ -152,7 +152,7 @@
     "worker": {
       "image": "${WORKER_IMAGE:?Set WORKER_IMAGE}",
       "environment": {
-        "Database__ConnectionString": "Host=postgres;Port=5432;Database=servicedesk;Username=servicedesk;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
         "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
       },
       "depends_on": {
