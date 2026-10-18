@@ -1,0 +1,37 @@
+jenkins:
+  systemMessage: "AI IT Service Desk — Local CI Pipeline"
+  numExecutors: 2
+
+  # ─── Security ────────────────────────────────────────────────────────────
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          name: "Administrator"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+# ─── Pipeline Job via Job DSL ─────────────────────────────────────────────
+# The project is mounted at /workspace inside the Jenkins container.
+# Git is configured to allow file:// protocol, so checkout scm works.
+jobs:
+  - script: |
+      pipelineJob('servicedesk-ci') {
+        description('AI IT Service Desk — CI pipeline (Checkout → Restore → Build → Test → Docker Build)')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('file:///workspace') }
+                branches('main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

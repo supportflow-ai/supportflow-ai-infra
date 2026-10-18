@@ -1,0 +1,10 @@
+# Jenkins plugins required for AI IT Service Desk CI pipeline
+# Format: plugin-id:version (latest = always newest compatible)
+
+configuration-as-code:latest
+job-dsl:latest
+workflow-aggregator:latest
+git:latest
+junit:latest
+pipeline-stage-view:latest
+mstest:latest
