@@ -1,0 +1,214 @@
+name: supportflow-system
+
+x-service-defaults: &defaults
+  restart: unless-stopped
+  networks:
+    - supportflow-network
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  postgres:
+    <<: *defaults
+    image: postgres:16-alpine
+    container_name: supportflow-system-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-servicedesk}
+      POSTGRES_USER: ${POSTGRES_USER:-servicedesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio:
+    <<: *defaults
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: supportflow-system-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: supportflow-system-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - supportflow-network
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+    volumes:
+      - ../scripts/init_minio_buckets.sh:/opt/supportflow/init_minio_buckets.sh:ro
+    entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
+
+  migration:
+    <<: *defaults
+    restart: "no"
+    container_name: supportflow-system-migration
+    build:
+      context: ../../ai-it-service-desk
+      dockerfile: src/backend/ServiceDesk.Database/Dockerfile
+    entrypoint: >
+      /bin/sh -c "
+      dotnet ServiceDesk.Database.dll migrate &&
+      dotnet ServiceDesk.Database.dll seed-roles
+      "
+    environment:
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-1:
+    <<: *defaults
+    container_name: supportflow-system-api-1
+    build:
+      context: ../../ai-it-service-desk
+      dockerfile: src/backend/ServiceDesk.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY (min 32 bytes)}
+      Jwt__Issuer: ${JWT_ISSUER:-supportflow-auth}
+      Jwt__Audience: ${JWT_AUDIENCE:-supportflow-api}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+      Ai__Endpoint: http://ai-service:8000
+      Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  api-2:
+    <<: *defaults
+    container_name: supportflow-system-api-2
+    build:
+      context: ../../ai-it-service-desk
+      dockerfile: src/backend/ServiceDesk.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY (min 32 bytes)}
+      Jwt__Issuer: ${JWT_ISSUER:-supportflow-auth}
+      Jwt__Audience: ${JWT_AUDIENCE:-supportflow-api}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+      Ai__Endpoint: http://ai-service:8000
+      Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *defaults
+    container_name: supportflow-system-worker
+    build:
+      context: ../../ai-it-service-desk
+      dockerfile: src/backend/ServiceDesk.Worker/Dockerfile
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+      Ai__Endpoint: http://ai-service:8000
+      Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+
+  ai-service:
+    <<: *defaults
+    container_name: supportflow-system-ai-service
+    build:
+      context: ../../ai-service
+    environment:
+      APP_ENV: production
+      PORT: 8000
+      AI_SERVICE_BEARER_TOKEN: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+
+  web:
+    <<: *defaults
+    container_name: supportflow-system-web
+    build:
+      context: ../../ai-it-service-desk-web
+      args:
+        VITE_API_BASE_URL: /api
+    depends_on:
+      - api-1
+      - api-2
+
+  gateway:
+    <<: *defaults
+    image: nginx:1.27-alpine
+    container_name: supportflow-system-gateway
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      web:
+        condition: service_started
+      api-1:
+        condition: service_healthy
+      api-2:
+        condition: service_healthy
+
+networks:
+  supportflow-network:
+    name: supportflow-system-network
+
+volumes:
+  postgres-data:
+    name: supportflow-system-postgres-data
+  minio-data:
+    name: supportflow-system-minio-data

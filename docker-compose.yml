@@ -1,0 +1,90 @@
+name: supportflow-infra
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks:
+    - supportflow-network
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  postgres:
+    <<: *service-defaults
+    image: postgres:16-alpine
+    container_name: supportflow-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-servicedesk}
+      POSTGRES_USER: ${POSTGRES_USER:-servicedesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-servicedesk_dev_secret_change_me}
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio:
+    <<: *service-defaults
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: supportflow-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_secret_change_me}
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000"
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: supportflow-minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - supportflow-network
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_secret_change_me}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+    volumes:
+      - ./scripts/init_minio_buckets.sh:/opt/supportflow/init_minio_buckets.sh:ro
+    entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
+
+  mailpit:
+    <<: *service-defaults
+    image: axllent/mailpit:v1.20
+    container_name: supportflow-mailpit
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MAILPIT_WEB_PORT:-8025}:8025"
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MAILPIT_SMTP_PORT:-1025}:1025"
+    volumes:
+      - mailpit-data:/data
+
+networks:
+  supportflow-network:
+    name: supportflow-network
+
+volumes:
+  postgres-data:
+    name: supportflow-postgres-data
+  minio-data:
+    name: supportflow-minio-data
+  mailpit-data:
+    name: supportflow-mailpit-data

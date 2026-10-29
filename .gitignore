@@ -1,0 +1,29 @@
+# Git ignore for supportflow-ai-infra
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+deploy/.env
+deploy/.env.*
+!deploy/.env.example
+
+# Logs & temp files
+*.log
+tmp/
+temp/
+
+# Python cache & virtual environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini

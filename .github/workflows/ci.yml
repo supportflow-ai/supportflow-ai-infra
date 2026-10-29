@@ -1,0 +1,60 @@
+name: Infra CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate-configs:
+    name: Validate Compose & NGINX Configs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup environment files for linting
+        run: |
+          cp example.env .env
+          cp deploy/example.env deploy/.env
+
+      - name: Validate Local docker-compose.yml syntax
+        run: |
+          docker compose --env-file example.env -f docker-compose.yml config --quiet
+
+      - name: Validate System deploy/compose.system.yml syntax
+        run: |
+          docker compose --env-file deploy/example.env -f deploy/compose.system.yml config --quiet
+
+      - name: Kiểm thử script init và cấu hình Compose
+        run: python3 -m unittest discover -s tests/unit -v
+
+      - name: Test NGINX Configuration Syntax
+        run: |
+          docker run --rm \
+            --add-host api-1:127.0.0.1 \
+            --add-host api-2:127.0.0.1 \
+            --add-host web:127.0.0.1 \
+            -v ${{ github.workspace }}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+            -v ${{ github.workspace }}/nginx/conf.d:/etc/nginx/conf.d:ro \
+            nginx:1.27-alpine nginx -t
+
+      - name: Check Python scripts syntax
+        run: |
+          python3 -m py_compile scripts/run_smoke_tests.py
+          python3 -m py_compile tests/smoke/gateway_routing_test.py
+
+  minio-integration:
+    name: Kiểm thử khởi tạo MinIO thật
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kiểm tra shell script
+        run: sh -n scripts/init_minio_buckets.sh
+      - name: Bucket tùy chỉnh, chạy lại và chặn dependency khi init lỗi
+        run: python3 -m unittest discover -s tests/integration -v
