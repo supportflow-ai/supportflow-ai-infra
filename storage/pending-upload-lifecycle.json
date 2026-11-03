@@ -1,0 +1,8 @@
+{
+  "Rules": [{
+    "ID": "supportflow-expire-pending-uploads",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "uploads/pending/" },
+    "Expiration": { "Days": 1 }
+  }]
+}

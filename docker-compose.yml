@@ -36,6 +36,7 @@ services:
     container_name: supportflow-minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://localhost:5173}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_secret_change_me}
     ports:

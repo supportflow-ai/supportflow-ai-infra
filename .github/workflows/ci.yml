@@ -38,6 +38,7 @@ jobs:
           docker run --rm \
             --add-host api-1:127.0.0.1 \
             --add-host api-2:127.0.0.1 \
+            --add-host minio:127.0.0.1 \
             --add-host web:127.0.0.1 \
             -v ${{ github.workspace }}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
             -v ${{ github.workspace }}/nginx/conf.d:/etc/nginx/conf.d:ro \

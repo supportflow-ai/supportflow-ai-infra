@@ -35,6 +35,7 @@ case "$1" in
   alias) if [ "${FAIL_ALIAS:-0}" = 1 ]; then echo "$MINIO_ROOT_PASSWORD" >&2; exit 7; fi ;;
   mb) if [ "${FAIL_BUCKET:-0}" = 1 ]; then echo "$MINIO_ROOT_PASSWORD" >&2; exit 8; fi ;;
 esac
+if [ "$1 $2 $3" = "admin policy create" ]; then cat "$6" > "$MC_POLICY"; fi
 ''', encoding="utf-8", newline="\n")
         self.mc.chmod(0o755)
         self.env = dict(os.environ, MINIO_ROOT_USER="custom_user",
@@ -42,7 +43,9 @@ esac
                         MINIO_DEFAULT_BUCKET="custom-bucket", MINIO_ENDPOINT="http://custom:9000",
                         MINIO_MC_BINARY=self.mc.as_posix(), MC_LOG=(self.work / "calls").as_posix(),
                         MINIO_INIT_MAX_ATTEMPTS="2", MINIO_INIT_RETRY_DELAY_SECONDS="0",
-                        FAIL_ALIAS="0", FAIL_BUCKET="0")
+                        FAIL_ALIAS="0", FAIL_BUCKET="0", MINIO_APP_ACCESS_KEY="",
+                        MINIO_APP_SECRET_KEY="", MINIO_LIFECYCLE_FILE="",
+                        MC_POLICY=(self.work / "policy.json").as_posix())
 
     def run_script(self):
         return subprocess.run([SHELL, (ROOT / "scripts/init_minio_buckets.sh").as_posix()],
@@ -100,6 +103,28 @@ esac
                 self.assertNotEqual(self.run_script().returncode, 0)
                 self.env[key] = previous
         self.assertEqual(self.calls(), [])
+
+    def test_application_policy_is_limited_to_configured_bucket(self):
+        self.env.update(MINIO_APP_ACCESS_KEY="app-key", MINIO_APP_SECRET_KEY="synthetic-app-secret")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        policy = json.loads((self.work / "policy.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy["Statement"][0]["Resource"], ["arn:aws:s3:::custom-bucket"])
+        self.assertEqual(policy["Statement"][1]["Resource"], [
+            "arn:aws:s3:::custom-bucket/uploads/pending/*", "arn:aws:s3:::custom-bucket/tickets/*"])
+        self.assertNotIn("s3:*", json.dumps(policy))
+        self.assertNotIn(self.env["MINIO_APP_SECRET_KEY"], result.stdout + result.stderr)
+        self.assertTrue(any(call.startswith("admin policy attach local custom-bucket-app --user app-key") for call in self.calls()))
+
+    def test_incomplete_app_credentials_fail_before_any_storage_change(self):
+        self.env["MINIO_APP_ACCESS_KEY"] = "app-key"
+        self.assertNotEqual(self.run_script().returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_pending_lifecycle_file_is_imported_for_dedicated_bucket(self):
+        self.env["MINIO_LIFECYCLE_FILE"] = (ROOT / "storage/pending-upload-lifecycle.json").as_posix()
+        self.assertEqual(self.run_script().returncode, 0)
+        self.assertIn("ilm import local/custom-bucket", self.calls())
 
 
 class ComposeConfigTests(unittest.TestCase):

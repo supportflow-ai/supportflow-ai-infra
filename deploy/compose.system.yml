@@ -34,6 +34,7 @@ services:
     container_name: supportflow-system-minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://localhost}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
     volumes:
@@ -58,8 +59,12 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
       MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY}
+      MINIO_LIFECYCLE_FILE: /opt/supportflow/pending-upload-lifecycle.json
     volumes:
       - ../scripts/init_minio_buckets.sh:/opt/supportflow/init_minio_buckets.sh:ro
+      - ../storage/pending-upload-lifecycle.json:/opt/supportflow/pending-upload-lifecycle.json:ro
     entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
 
   migration:
@@ -95,8 +100,9 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-supportflow-api}
       Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
       Minio__Endpoint: minio:9000
-      Minio__AccessKey: ${MINIO_ROOT_USER}
-      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:?Set MINIO_PUBLIC_ENDPOINT to the externally reachable storage origin}
+      Minio__AccessKey: ${MINIO_APP_ACCESS_KEY}
+      Minio__SecretKey: ${MINIO_APP_SECRET_KEY}
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
@@ -127,8 +133,9 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-supportflow-api}
       Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-1440}
       Minio__Endpoint: minio:9000
-      Minio__AccessKey: ${MINIO_ROOT_USER}
-      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:?Set MINIO_PUBLIC_ENDPOINT to the externally reachable storage origin}
+      Minio__AccessKey: ${MINIO_APP_ACCESS_KEY}
+      Minio__SecretKey: ${MINIO_APP_SECRET_KEY}
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
@@ -154,8 +161,9 @@ services:
       DOTNET_ENVIRONMENT: Production
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
       Minio__Endpoint: minio:9000
-      Minio__AccessKey: ${MINIO_ROOT_USER}
-      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:?Set MINIO_PUBLIC_ENDPOINT to the externally reachable storage origin}
+      Minio__AccessKey: ${MINIO_APP_ACCESS_KEY}
+      Minio__SecretKey: ${MINIO_APP_SECRET_KEY}
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
@@ -171,9 +179,9 @@ services:
     build:
       context: ../../ai-service
     environment:
-      APP_ENV: production
-      PORT: 8000
-      AI_SERVICE_BEARER_TOKEN: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+      SUPPORTFLOW_AI_ENVIRONMENT: production
+      SUPPORTFLOW_AI_CLASSIFIER_PROVIDER: rule
+      SUPPORTFLOW_AI_SERVICE_TOKEN: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
 
   web:
     <<: *defaults
@@ -192,6 +200,7 @@ services:
     container_name: supportflow-system-gateway
     ports:
       - "${GATEWAY_PORT:-80}:80"
+      - "${STORAGE_BIND_ADDRESS:-127.0.0.1}:${STORAGE_GATEWAY_PORT:-9000}:9000"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
