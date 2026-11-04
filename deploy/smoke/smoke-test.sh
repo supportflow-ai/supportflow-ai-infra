@@ -47,7 +47,7 @@ ATTACHMENT_PAYLOAD=$(node -e 'process.stdout.write(JSON.stringify({fileName:"smo
 curl --fail --silent --show-error "$BASE_URL/api/tickets/$TICKET_ID/attachments/upload-url" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d "$ATTACHMENT_PAYLOAD" |
-  node -e 'const r=JSON.parse(require("fs").readFileSync(0)); if(!r.uploadUrl||!r.key) process.exit(1)'
+  node -e 'const r=JSON.parse(require("fs").readFileSync(0)); if(!r.uploadUrl||!r.storageKey) process.exit(1)'
 echo '[8/9] Presigned upload URL passed'
 
 AGENT_LOGIN=$(node -e 'process.stdout.write(JSON.stringify({email:"agent@test.com",password:"Test@1234"}))')
@@ -55,7 +55,7 @@ AGENT_TOKEN=$(curl --fail --silent --show-error "$BASE_URL/api/auth/login" \
   -H 'Content-Type: application/json' -d "$AGENT_LOGIN" |
   node -e 'const r=JSON.parse(require("fs").readFileSync(0)); if(!r.token) process.exit(1); process.stdout.write(r.token)')
 
-curl --fail --silent --show-error "$BASE_URL/api/tickets/agent-queue?page=1&pageSize=10" \
+curl --fail --silent --show-error "$BASE_URL/api/tickets/queue?page=1&pageSize=10" \
   -H "Authorization: Bearer $AGENT_TOKEN" |
   node -e 'const r=JSON.parse(require("fs").readFileSync(0)); if(!Array.isArray(r.items)) process.exit(1)'
 echo '[9/9] Agent queue passed'
