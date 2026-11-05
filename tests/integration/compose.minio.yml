@@ -16,7 +16,9 @@ services:
       timeout: 2s
       retries: 30
   minio-init:
-    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    build:
+      context: ../..
+      dockerfile: deploy/minio/Dockerfile
     entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
     environment:
       MINIO_ROOT_USER: ${TEST_MINIO_USER:?required}
@@ -29,7 +31,9 @@ services:
       minio:
         condition: service_healthy
   protected-service:
-    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    build:
+      context: ../..
+      dockerfile: deploy/minio/Dockerfile
     entrypoint: ["/bin/sh", "-c", "exit 0"]
     depends_on:
       minio-init:

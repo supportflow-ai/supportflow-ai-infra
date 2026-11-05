@@ -49,7 +49,9 @@ services:
       start_period: 5s
 
   minio-init:
-    image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+    build:
+      context: ..
+      dockerfile: deploy/minio/Dockerfile
     container_name: supportflow-system-minio-init
     depends_on:
       minio:
