@@ -1,0 +1,206 @@
+{
+  "services": {
+    "postgres": {
+      "image": "pgvector/pgvector:pg17",
+      "environment": {
+        "POSTGRES_USER": "servicedesk",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",
+        "POSTGRES_DB": "servicedesk"
+      },
+      "volumes": [
+        "postgres_data:/var/lib/postgresql/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U servicedesk"
+        ],
+        "interval": "5s",
+        "timeout": "5s",
+        "retries": 12
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "minio": {
+      "image": "${MINIO_IMAGE:?Set MINIO_IMAGE}",
+      "command": [
+        "server",
+        "/data",
+        "--console-address",
+        ":9001"
+      ],
+      "environment": {
+        "MINIO_ROOT_USER": "${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}",
+        "MINIO_ROOT_PASSWORD": "${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}"
+      },
+      "volumes": [
+        "minio_data:/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9000/minio/health/live"
+        ],
+        "interval": "5s",
+        "timeout": "5s",
+        "retries": 24
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "migrate": {
+      "image": "${DATABASE_IMAGE:?Set DATABASE_IMAGE}",
+      "command": [
+        "migrate"
+      ],
+      "environment": {
+        "Database__ConnectionString": "${MIGRATION_DATABASE_CONNECTION_STRING:?Set migration database credential}",
+        "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
+      },
+      "depends_on": {
+        "postgres": {
+          "condition": "service_healthy"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "seed-roles": {
+      "image": "${DATABASE_IMAGE:?Set DATABASE_IMAGE}",
+      "command": [
+        "seed-roles"
+      ],
+      "environment": {
+        "Database__ConnectionString": "${MIGRATION_DATABASE_CONNECTION_STRING:?Set migration database credential}",
+        "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
+      },
+      "depends_on": {
+        "migrate": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "frontend": {
+      "image": "${WEB_IMAGE:?Set WEB_IMAGE}",
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "api-1": {
+      "image": "${API_IMAGE:?Set API_IMAGE}",
+      "environment": {
+        "ASPNETCORE_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}",
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
+        "Jwt__SecretKey": "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}",
+        "Jwt__Issuer": "ServiceDesk",
+        "Jwt__Audience": "ServiceDeskClient",
+        "Minio__Endpoint": "minio:9000",
+        "Minio__AccessKey": "${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}",
+        "Minio__SecretKey": "${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}",
+        "Minio__Bucket": "servicedesk",
+        "Minio__UseSsl": "false",
+        "ReverseProxy__KnownNetworks__0": "172.30.20.0/24"
+      },
+      "depends_on": {
+        "seed-roles": {
+          "condition": "service_completed_successfully"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "api-2": {
+      "image": "${API_IMAGE:?Set API_IMAGE}",
+      "environment": {
+        "ASPNETCORE_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}",
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
+        "Jwt__SecretKey": "${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}",
+        "Jwt__Issuer": "ServiceDesk",
+        "Jwt__Audience": "ServiceDeskClient",
+        "Minio__Endpoint": "minio:9000",
+        "Minio__AccessKey": "${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}",
+        "Minio__SecretKey": "${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}",
+        "Minio__Bucket": "servicedesk",
+        "Minio__UseSsl": "false",
+        "ReverseProxy__KnownNetworks__0": "172.30.20.0/24"
+      },
+      "depends_on": {
+        "seed-roles": {
+          "condition": "service_completed_successfully"
+        },
+        "minio": {
+          "condition": "service_healthy"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "worker": {
+      "image": "${WORKER_IMAGE:?Set WORKER_IMAGE}",
+      "environment": {
+        "Database__ConnectionString": "${RUNTIME_DATABASE_CONNECTION_STRING:?Set runtime database credential}",
+        "DOTNET_ENVIRONMENT": "${APP_ENVIRONMENT:-Production}"
+      },
+      "depends_on": {
+        "seed-roles": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    },
+    "nginx": {
+      "image": "nginx:alpine",
+      "ports": [
+        "${GATEWAY_PORT:-80}:80"
+      ],
+      "volumes": [
+        "./deploy/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+      ],
+      "depends_on": {
+        "api-1": {
+          "condition": "service_healthy"
+        },
+        "api-2": {
+          "condition": "service_healthy"
+        },
+        "frontend": {
+          "condition": "service_started"
+        }
+      },
+      "networks": [
+        "servicedesk"
+      ]
+    }
+  },
+  "volumes": {
+    "postgres_data": {},
+    "minio_data": {}
+  },
+  "networks": {
+    "servicedesk": {
+      "ipam": {
+        "config": [
+          {
+            "subnet": "172.30.20.0/24"
+          }
+        ]
+      }
+    }
+  }
+}

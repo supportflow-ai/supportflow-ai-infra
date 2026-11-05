@@ -59,3 +59,57 @@ jobs:
         run: sh -n scripts/init_minio_buckets.sh
       - name: Bucket tùy chỉnh, chạy lại và chặn dependency khi init lỗi
         run: python3 -m unittest discover -s tests/integration -v
+
+  smoke:
+    name: Disposable Stack & Full Smoke Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BACKEND_PATH: ./_sources/backend
+      WEB_PATH: ./_sources/web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read immutable source commits
+        id: sources
+        run: |
+          python - <<'PY'
+          import json, os, re
+          values = json.load(open('sources.lock.json'))
+          assert 'backend' in values and 'web' in values
+          assert re.fullmatch(r'[0-9a-f]{40}', values['backend'])
+          assert re.fullmatch(r'[0-9a-f]{40}', values['web'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"backend={values['backend']}\n")
+              out.write(f"web={values['web']}\n")
+          PY
+      - uses: actions/checkout@v4
+        with:
+          repository: supportflow-ai/ai-it-service-desk
+          ref: ${{ steps.sources.outputs.backend }}
+          path: _sources/backend
+      - uses: actions/checkout@v4
+        with:
+          repository: supportflow-ai/ai-it-service-desk-web
+          ref: ${{ steps.sources.outputs.web }}
+          path: _sources/web
+      - name: Set up smoke test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate configuration
+        run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml config --quiet
+      - name: Build and start disposable stack
+        run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml up --build -d --wait --wait-timeout 300
+      - name: Explicit demo setup and requester smoke
+        run: |
+          docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml run --rm migrate seed-demo
+          bash deploy/smoke/smoke-test.sh
+          curl --fail --silent http://localhost/ > /dev/null
+          curl --fail --silent http://localhost/health/live > /dev/null
+          curl --fail --silent http://localhost/health/ready > /dev/null
+      - name: Diagnostics
+        if: always()
+        run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml logs --no-color
+      - name: Remove disposable CI stack
+        if: always()
+        run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml down -v
