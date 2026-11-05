@@ -86,6 +86,8 @@ python ../scripts/run_smoke_tests.py --target-url http://localhost
 
 ## 4. Tài liệu chi tiết
 
+- [Tài liệu chung SupportFlow AI](docs/project/README.md) — kiến trúc bốn kho, phạm vi MVP và đối chiếu API, quyền truy cập.
+
 Kiểm tra cấu hình và khởi tạo MinIO từ gốc repo:
 
 ```bash
