@@ -7,8 +7,8 @@ Chủ dự án phê duyệt phạm vi và chọn `main` làm nhánh chuẩn. Ph�
 | Nhóm | Quyết định phạm vi | Hiện trạng tại mốc đối chiếu |
 | --- | --- | --- |
 | Identity | MVP | Backend và Web có đăng ký, đăng nhập, hồ sơ hiện tại và quản lý phiên ở giao diện |
-| Ticketing | MVP | Backend và Web có các luồng chính. Phân công, một số nút hành động và hợp đồng danh bạ cần đối chiếu trước demo |
-| Knowledge | Cần xem xét riêng | Backend đã có endpoint và lưu trữ bài viết. Việc có mặt trong API là hiện trạng kỹ thuật |
+| Ticketing | MVP | Backend và Web có các luồng chính. Cần nghiệm thu phân công, quyền theo trạng thái và tệp trên môi trường demo |
+| Knowledge | Cần xem xét riêng | Đã có API, lưu trữ bài viết và giao diện đọc, quản trị theo quyền |
 | Phân loại AI, duyệt gợi ý, embedding và RAG | Giai đoạn sau | Có hợp đồng phân loại và adapter. Chưa có luồng ticket đến AI rồi qua người duyệt |
 | SLA, thông báo, phân tích và quản trị đầy đủ | Giai đoạn sau | Route quản trị trên Web đang hiển thị trang chưa hỗ trợ |
 
