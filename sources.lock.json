@@ -1,0 +1,12 @@
+{
+  "backend": "51b16fbeea2d07f88059cc79da528bc1e85b851e",
+  "web": "3c7d31b2bf9debb1b59992e4ab149e0ecb8183b7",
+  "aiService": "7c0910298c35150cb28ed2a71605b8c4e03a3938",
+  "digests": {
+    "servicedesk-api": "sha256:99ef2a3354f11776feea3454c1dfde4d1aa91492411640b9d98a90ab1e36b494",
+    "servicedesk-worker": "sha256:243a596cde391cafb7fd630beb20edb4a2ec8f895b30ec9f43ea21585e720165",
+    "servicedesk-database": "sha256:db4493ecd394c79bacca6f6f0286b37e6ed33766fb58fb82ee338d58b492c295",
+    "servicedesk-web": "sha256:a8c82a798c77c041b7082a7810607f7ec700014a0d771ba079a18e154b40eb52",
+    "ai-service": "sha256:29d25af5a62fe394ccd434df62de7d4a6d4141d3ad26f0750e99ef6571dbe7ab"
+  }
+}

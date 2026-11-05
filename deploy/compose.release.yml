@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     networks: *id001
     logging: *id002
-    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    image: ${MINIO_IMAGE:-ghcr.io/supportflow-ai/servicedesk-minio:RELEASE.2025-10-15T17-29-55Z}
     command: server /data --console-address ":9001"
     environment:
       MINIO_API_CORS_ALLOW_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://localhost}

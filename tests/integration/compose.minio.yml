@@ -1,7 +1,9 @@
 # Stack kiểm thử dùng một lần, không dùng volume/port của hệ thống local.
 services:
   minio:
-    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    build:
+      context: ../..
+      dockerfile: deploy/minio/Dockerfile
     command: server /data
     tmpfs:
       - /data
