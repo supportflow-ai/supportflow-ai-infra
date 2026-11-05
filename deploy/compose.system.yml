@@ -13,7 +13,7 @@ x-service-defaults: &defaults
 services:
   postgres:
     <<: *defaults
-    image: postgres:16-alpine
+    image: pgvector/pgvector:0.8.1-pg16-bookworm@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337
     container_name: supportflow-system-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-servicedesk}
@@ -106,6 +106,9 @@ services:
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+      KnowledgeIndex__Enabled: "true"
+      KnowledgeIndex__Endpoint: http://ai-service:8000
+      KnowledgeIndex__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health/ready || exit 1"]
       interval: 10s
@@ -139,6 +142,9 @@ services:
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+      KnowledgeIndex__Enabled: "true"
+      KnowledgeIndex__Endpoint: http://ai-service:8000
+      KnowledgeIndex__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health/ready || exit 1"]
       interval: 10s
@@ -167,6 +173,9 @@ services:
       Minio__Bucket: ${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}
       Ai__Endpoint: http://ai-service:8000
       Ai__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
+      KnowledgeIndex__Enabled: "true"
+      KnowledgeIndex__Endpoint: http://ai-service:8000
+      KnowledgeIndex__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
     depends_on:
       migration:
         condition: service_completed_successfully
@@ -181,6 +190,8 @@ services:
     environment:
       SUPPORTFLOW_AI_ENVIRONMENT: production
       SUPPORTFLOW_AI_CLASSIFIER_PROVIDER: rule
+      SUPPORTFLOW_AI_EMBEDDING_PROVIDER: local-e5
+      SUPPORTFLOW_AI_EMBEDDING_CACHE_DIR: /opt/models
       SUPPORTFLOW_AI_SERVICE_TOKEN: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
 
   web:
