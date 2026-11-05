@@ -91,6 +91,19 @@ class ReleaseComposeTests(unittest.TestCase):
         self.assertEqual(services["ai-service"]["environment"]["SUPPORTFLOW_AI_ENVIRONMENT"], "production")
         self.assertEqual(services["ai-service"]["environment"]["SUPPORTFLOW_AI_CLASSIFIER_PROVIDER"], "rule")
 
+    def test_knowledge_pipeline_uses_pgvector_and_internal_cpu_embeddings(self):
+        services = self.config("staging")["services"]
+        self.assertRegex(services["postgres"]["image"], r"^pgvector/pgvector:0\.8\.1-pg16-bookworm@sha256:[a-f0-9]{64}$")
+        ai = services["ai-service"]
+        self.assertNotIn("ports", ai)
+        self.assertEqual(ai["environment"]["SUPPORTFLOW_AI_EMBEDDING_PROVIDER"], "local-e5")
+        for name in ("api-1", "api-2", "worker"):
+            config = services[name]["environment"]
+            self.assertEqual(config["KnowledgeIndex__Enabled"], "true")
+            self.assertEqual(config["KnowledgeIndex__Endpoint"], "http://ai-service:8000")
+            self.assertEqual(config["KnowledgeIndex__BearerToken"],
+                             ai["environment"]["SUPPORTFLOW_AI_SERVICE_TOKEN"])
+
 
 if __name__ == "__main__":
     unittest.main()
