@@ -57,23 +57,61 @@ class ReleaseManifestTests(unittest.TestCase):
 
 
 class ReleaseComposeTests(unittest.TestCase):
-    def config(self, environment):
+    def config(self, environment, *compose_files, env_file="deploy/example.env", **overrides):
         env = dict(os.environ, DEPLOY_ENV=environment)
         for image, (variable, _) in release.IMAGES.items():
             env[variable] = "ghcr.io/supportflow-ai/" + image + "@sha256:" + "b" * 64
-        result = subprocess.run(["docker", "compose", "--env-file", "deploy/example.env", "-f",
-                                 "deploy/compose.release.yml", "config", "--format", "json"],
+        env.pop("BACKEND_MIGRATOR_DOCKERFILE", None)
+        env.update(overrides)
+        compose_args = [arg for filename in (compose_files or ("deploy/compose.release.yml",))
+                        for arg in ("-f", filename)]
+        result = subprocess.run(["docker", "compose", "--env-file", env_file, *compose_args,
+                                 "config", "--format", "json"],
                                 cwd=ROOT, env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
     def test_application_services_have_no_sibling_build_context(self):
         config = self.config("staging")
-        for name in ("api-1", "api-2", "worker", "migration", "web", "ai-service"):
+        for name in ("api-1", "api-2", "worker", "migration", "seed-roles", "web", "ai-service"):
             with self.subTest(service=name):
                 service = config["services"][name]
                 self.assertNotIn("build", service)
                 self.assertRegex(service["image"], r"@sha256:[a-f0-9]{64}$")
+
+    def test_system_and_release_run_migration_before_seeding_and_starting_backend(self):
+        for filename in ("deploy/compose.system.yml", "deploy/compose.release.yml"):
+            with self.subTest(compose=filename):
+                services = self.config("staging", filename)["services"]
+                migration = services["migration"]
+                seed = services["seed-roles"]
+                self.assertIsNone(migration.get("entrypoint"))
+                self.assertIsNone(seed.get("entrypoint"))
+                self.assertEqual(migration["command"], ["migrate"])
+                self.assertEqual(seed["command"], ["seed-roles"])
+                self.assertEqual(migration["restart"], "no")
+                self.assertEqual(seed["restart"], "no")
+                self.assertEqual(migration["depends_on"]["postgres"]["condition"], "service_healthy")
+                self.assertEqual(seed["depends_on"]["migration"]["condition"], "service_completed_successfully")
+                self.assertEqual(migration["environment"], seed["environment"])
+                artifact = "build" if filename.endswith("system.yml") else "image"
+                self.assertEqual(migration[artifact], seed[artifact])
+                for name in ("api-1", "api-2", "worker"):
+                    dependencies = services[name]["depends_on"]
+                    for prerequisite in ("seed-roles", "minio-init"):
+                        self.assertEqual(dependencies[prerequisite]["condition"], "service_completed_successfully")
+
+    def test_source_builds_support_current_and_pinned_migrator_dockerfiles(self):
+        current = "src/backend/ServiceDesk.Migrator/Dockerfile"
+        legacy = "src/backend/ServiceDesk.Database/Dockerfile"
+        for files, env_file, migrate in (
+                (["deploy/compose.system.yml"], "deploy/example.env", "migration"),
+                (["compose.yaml", "compose.local.yaml"], ".env.local.example", "migrate")):
+            for expected, overrides in ((current, {}), (legacy, {"BACKEND_MIGRATOR_DOCKERFILE": legacy})):
+                with self.subTest(compose=files, dockerfile=expected):
+                    services = self.config("staging", *files, env_file=env_file, **overrides)["services"]
+                    for name in (migrate, "seed-roles"):
+                        self.assertEqual(services[name]["build"]["dockerfile"], expected)
 
     def test_staging_and_production_have_distinct_volumes_and_networks(self):
         stage, production = self.config("staging"), self.config("production")

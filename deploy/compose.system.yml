@@ -71,23 +71,27 @@ services:
       - ../storage/pending-upload-lifecycle.json:/opt/supportflow/pending-upload-lifecycle.json:ro
     entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
 
-  migration:
+  migration: &migration_job
     <<: *defaults
     restart: "no"
     container_name: supportflow-system-migration
     build:
       context: ../../ai-it-service-desk
-      dockerfile: src/backend/ServiceDesk.Database/Dockerfile
-    entrypoint: >
-      /bin/sh -c "
-      dotnet ServiceDesk.Database.dll migrate &&
-      dotnet ServiceDesk.Database.dll seed-roles
-      "
+      dockerfile: ${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/ServiceDesk.Migrator/Dockerfile}
+    command: ["migrate"]
     environment:
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
+
+  seed-roles:
+    <<: *migration_job
+    container_name: supportflow-system-seed-roles
+    command: ["seed-roles"]
+    depends_on:
+      migration:
+        condition: service_completed_successfully
 
   api-1:
     <<: *defaults
@@ -120,7 +124,7 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      migration:
+      seed-roles:
         condition: service_completed_successfully
       minio-init:
         condition: service_completed_successfully
@@ -156,7 +160,7 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
-      migration:
+      seed-roles:
         condition: service_completed_successfully
       minio-init:
         condition: service_completed_successfully
@@ -181,7 +185,7 @@ services:
       KnowledgeIndex__Endpoint: http://ai-service:8000
       KnowledgeIndex__BearerToken: ${AI_S2S_BEARER_TOKEN:?Set AI_S2S_BEARER_TOKEN}
     depends_on:
-      migration:
+      seed-roles:
         condition: service_completed_successfully
       minio-init:
         condition: service_completed_successfully

@@ -30,7 +30,7 @@ supportflow-ai-infra/
 │       └── ci.yml                   # CI kiểm tra cú pháp Compose và cấu hình NGINX
 ├── deploy/                          # Môi trường Staging / Production toàn diện
 │   ├── .env.example
-│   ├── compose.system.yml           # Full stack 10 container (Web + 2 API + Worker + AI + DB + MinIO + NGINX)
+│   ├── compose.system.yml           # Toàn hệ thống, gồm các tác vụ migration, seed vai trò và init MinIO
 │   ├── example.env                  # Bản mẫu cấu hình cho VPS
 │   └── README.md                    # Runbook triển khai chi tiết
 ├── docs/

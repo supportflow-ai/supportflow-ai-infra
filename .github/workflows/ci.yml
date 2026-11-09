@@ -92,6 +92,18 @@ jobs:
           repository: supportflow-ai/ai-it-service-desk-web
           ref: ${{ steps.sources.outputs.web }}
           path: _sources/web
+      - name: Xác định Dockerfile của công cụ migration theo SHA đã ghim
+        run: |
+          current=src/backend/ServiceDesk.Migrator/Dockerfile
+          legacy=src/backend/ServiceDesk.Database/Dockerfile
+          if [[ -f "$BACKEND_PATH/$current" ]]; then
+            echo "BACKEND_MIGRATOR_DOCKERFILE=$current" >> "$GITHUB_ENV"
+          elif [[ -f "$BACKEND_PATH/$legacy" ]]; then
+            echo "BACKEND_MIGRATOR_DOCKERFILE=$legacy" >> "$GITHUB_ENV"
+          else
+            echo "::error::SHA backend đã ghim thiếu Dockerfile cho công cụ migration."
+            exit 1
+          fi
       - name: Set up smoke test runtime
         uses: actions/setup-node@v4
         with:
