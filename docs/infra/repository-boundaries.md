@@ -20,7 +20,7 @@ Tài liệu này xác định ranh giới sở hữu, phân quyền công nghệ
 ## 2. Các nguyên tắc bất biến (Architectural Invariants)
 
 ### 2.1. Quản lý Cơ sở dữ liệu và Schema
-- **Một nguồn chân lý duy nhất (SSOT)**: Repository `ai-it-service-desk` (thông qua project `ServiceDesk.Database` và `ServiceDesk.Infrastructure`) sở hữu 100% schema.
+- Repository `ai-it-service-desk` sở hữu schema. `ServiceDesk.Platform` chứa EF Core migration và `ServiceDesk.Migrator` cung cấp lệnh vận hành.
 - Repo `supportflow-ai-infra` chỉ cung cấp container PostgreSQL 16 sạch, không bao giờ chứa script DDL tạo bảng nghiệp vụ.
 
 ### 2.2. Giao tiếp Dịch vụ AI (ADR-012)

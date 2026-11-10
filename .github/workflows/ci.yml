@@ -61,12 +61,23 @@ jobs:
         run: python3 -m unittest discover -s tests/integration -v
 
   smoke:
-    name: Disposable Stack & Full Smoke Test
+    name: Disposable Stack & Full Smoke Test (${{ matrix.profile }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: locked
+            backend: ''
+          # Mốc kiểm chứng Migrator, tách khỏi source lock và digest phát hành.
+          - profile: migrator
+            backend: 97ab0477350c309ca9f578304e56ce530d7c9899
     env:
       BACKEND_PATH: ./_sources/backend
       WEB_PATH: ./_sources/web
+      SMOKE_BACKEND_SHA: ${{ matrix.backend }}
+      COMPOSE_PROJECT_NAME: supportflow-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.profile }}
     steps:
       - uses: actions/checkout@v4
       - name: Read immutable source commits
@@ -75,12 +86,15 @@ jobs:
           python - <<'PY'
           import json, os, re
           values = json.load(open('sources.lock.json'))
-          assert 'backend' in values and 'web' in values
-          assert re.fullmatch(r'[0-9a-f]{40}', values['backend'])
-          assert re.fullmatch(r'[0-9a-f]{40}', values['web'])
+          sources = {
+              'backend': os.environ.get('SMOKE_BACKEND_SHA') or values['backend'],
+              'web': values['web'],
+          }
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
-              out.write(f"backend={values['backend']}\n")
-              out.write(f"web={values['web']}\n")
+              for key, sha in sources.items():
+                  assert re.fullmatch(r'[0-9a-f]{40}', sha), key
+                  print(f'{key}={sha}', file=out)
+                  print(f'{key}={sha}')
           PY
       - uses: actions/checkout@v4
         with:
@@ -92,6 +106,18 @@ jobs:
           repository: supportflow-ai/ai-it-service-desk-web
           ref: ${{ steps.sources.outputs.web }}
           path: _sources/web
+      - name: Xác định Dockerfile của công cụ migration theo SHA đã ghim
+        run: |
+          current=src/backend/ServiceDesk.Migrator/Dockerfile
+          legacy=src/backend/ServiceDesk.Database/Dockerfile
+          if [[ -f "$BACKEND_PATH/$current" ]]; then
+            echo "BACKEND_MIGRATOR_DOCKERFILE=$current" >> "$GITHUB_ENV"
+          elif [[ -z "$SMOKE_BACKEND_SHA" && -f "$BACKEND_PATH/$legacy" ]]; then
+            echo "BACKEND_MIGRATOR_DOCKERFILE=$legacy" >> "$GITHUB_ENV"
+          else
+            echo "::error::SHA backend đã ghim thiếu Dockerfile cho công cụ migration."
+            exit 1
+          fi
       - name: Set up smoke test runtime
         uses: actions/setup-node@v4
         with:
@@ -100,6 +126,17 @@ jobs:
         run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml config --quiet
       - name: Build and start disposable stack
         run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml up --build -d --wait --wait-timeout 300
+      - name: Xác minh Migrator, seed vai trò và Worker
+        if: matrix.profile == 'migrator'
+        run: |
+          compose=(docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml)
+          for service in migrate seed-roles; do
+            id=$("${compose[@]}" ps --all --quiet "$service")
+            test "$(docker inspect --format '{{.State.Status}}:{{.State.ExitCode}}' "$id")" = exited:0
+            test "$(docker inspect --format '{{json .Config.Entrypoint}}' "$id")" = '["dotnet","ServiceDesk.Migrator.dll"]'
+            echo "$service: ServiceDesk.Migrator.dll, exit 0"
+          done
+          test -n "$("${compose[@]}" ps --status running --quiet worker)"
       - name: Explicit demo setup and requester smoke
         run: |
           docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml run --rm migrate seed-demo
@@ -107,6 +144,32 @@ jobs:
           curl --fail --silent http://localhost/ > /dev/null
           curl --fail --silent http://localhost/health/live > /dev/null
           curl --fail --silent http://localhost/health/ready > /dev/null
+      - name: Kiểm chứng migration lỗi chặn API và Worker
+        if: matrix.profile == 'migrator'
+        run: |
+          compose=(docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml)
+          "${compose[@]}" down -v
+          override="$RUNNER_TEMP/fail-migration.yaml"
+          cat > "$override" <<'YAML'
+          services:
+            migrate:
+              environment:
+                Database__ConnectionString: Host=postgres;Port=1;Database=servicedesk;Username=servicedesk;Password=ci_invalid;Timeout=2
+          YAML
+          failure=("${compose[@]}" -f "$override")
+          if "${failure[@]}" up --no-build -d api-1 api-2 worker; then
+            echo "::error::Compose đã khởi động dù cấu hình migration bị lỗi."
+            exit 1
+          fi
+          id=$("${failure[@]}" ps --all --quiet migrate)
+          test "$(docker inspect --format '{{.State.Status}}:{{.State.ExitCode}}' "$id")" = exited:1
+          for service in seed-roles api-1 api-2 worker; do
+            id=$("${failure[@]}" ps --all --quiet "$service")
+            if [[ -n "$id" ]]; then
+              test "$(docker inspect --format '{{.State.Status}}' "$id")" = created
+            fi
+            echo "$service: bị chặn trước khi khởi động"
+          done
       - name: Diagnostics
         if: always()
         run: docker compose --env-file .env.local.example -f compose.yaml -f compose.local.yaml logs --no-color

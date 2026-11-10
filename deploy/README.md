@@ -28,6 +28,9 @@ chmod 600 .env
 - `AI_S2S_BEARER_TOKEN`: Khóa bí mật dùng cho giao tiếp S2S giữa API/Worker và AI Service.
 
 ### Bước 2: Kiểm tra cú pháp Compose
+
+Compose mặc định build từ `src/backend/ServiceDesk.Migrator/Dockerfile` của backend. Khi chạy với checkout backend đã ghim trước lần đổi tên, đặt `BACKEND_MIGRATOR_DOCKERFILE=src/backend/ServiceDesk.Database/Dockerfile` trong tệp môi trường dùng cho Compose.
+
 ```bash
 docker compose --env-file .env -f compose.system.yml config --quiet
 ```
@@ -39,9 +42,9 @@ docker compose -f compose.system.yml up -d --build
 
 Thứ tự khởi động tự động:
 1. `postgres` và `minio` khởi động và đạt trạng thái `healthy`.
-2. `migration` chạy EF Core database migration rồi tự thoát (`exit 0`).
+2. `migration` áp dụng EF Core migration. Sau khi tác vụ này thoát với mã 0, `seed-roles` khởi tạo vai trò với cùng Dockerfile và cấu hình kết nối cơ sở dữ liệu.
 3. `minio-init` nhận credentials/bucket qua environment và chạy script dùng chung. Lỗi xác thực hoặc tạo bucket trả exit code khác 0; không được bỏ qua lỗi này.
-4. `api-1`, `api-2`, `worker` chỉ khởi động sau khi migration và minio-init hoàn tất thành công. `ai-service` khởi động độc lập; backend hiện vẫn dùng NoOp adapter.
+4. `api-1`, `api-2`, `worker` chỉ khởi động sau khi `seed-roles` và `minio-init` hoàn tất thành công. `ai-service` khởi động độc lập.
 5. `web` build Vite app và phục vụ qua Nginx container.
 6. `gateway` (NGINX reverse proxy & load balancer) khởi động, cân bằng tải 2 node API và phục vụ Web tại cổng 80.
 

@@ -12,6 +12,8 @@ Trạng thái 03/11/2026: đã chuẩn bị code, chưa chạy stack thật, ch�
 
 Release stack dùng `DEPLOY_ENV` để tách tên project, network và volume của staging với production. Thay đổi này không tự nhập dữ liệu từ volume cũ. Các cổng gateway phải được cấu hình riêng nếu chạy đồng thời trên cùng máy. Database/storage không có cổng công khai trong release stack.
 
+`migration` và `seed-roles` dùng cùng digest `DATABASE_IMAGE` và truyền lệnh qua entrypoint của image. Cách này hỗ trợ cả image trước và sau lần đổi tên DLL. API và Worker đợi cả hai tác vụ hoàn tất theo thứ tự trước khi khởi động.
+
 ## Tạo manifest
 
 CI Backend/Web/AI có job GHCR chạy khi người vận hành dispatch với `publish_images=true`, sau quality gates. Tải năm tệp bằng chứng từ artifact CI: `servicedesk-api.json`, `servicedesk-worker.json`, `servicedesk-database.json`, `servicedesk-web.json`, `ai-service.json`.
