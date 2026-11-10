@@ -10,6 +10,9 @@ ACCESS_KEY="${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
 SECRET_KEY="${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}"
 BUCKET_NAME="${MINIO_DEFAULT_BUCKET:-servicedesk-attachments}"
 MC_BINARY="${MINIO_MC_BINARY:-/usr/bin/mc}"
+if [ ! -x "$MC_BINARY" ] && command -v mc > /dev/null 2>&1; then
+    MC_BINARY="$(command -v mc)"
+fi
 APP_KEY="${MINIO_APP_ACCESS_KEY:-}"
 APP_SECRET="${MINIO_APP_SECRET_KEY:-}"
 case "$BUCKET_NAME" in

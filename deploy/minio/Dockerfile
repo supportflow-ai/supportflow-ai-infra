@@ -17,7 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && useradd --system --uid 10001 --user-group minio \
     && mkdir /data && chown minio:minio /data
 COPY --from=build /out/minio /usr/local/bin/minio
+COPY --from=build /out/minio /usr/bin/minio
 COPY --from=build /out/mc /usr/local/bin/mc
+COPY --from=build /out/mc /usr/bin/mc
 COPY --from=build /src/minio/LICENSE /usr/share/licenses/minio/LICENSE
 ENV HOME=/tmp
 USER minio

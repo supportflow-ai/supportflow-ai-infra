@@ -4,29 +4,29 @@ services:
     build:
       context: ../..
       dockerfile: deploy/minio/Dockerfile
-    user: "0:0"
     command: server /data
     tmpfs:
-      - /data
+      - /data:uid=10001,gid=10001,mode=0750
     environment:
       MINIO_ROOT_USER: ${TEST_MINIO_USER:?required}
       MINIO_ROOT_PASSWORD: ${TEST_MINIO_PASSWORD:?required}
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
       interval: 2s
       timeout: 2s
       retries: 30
+      start_period: 5s
   minio-init:
     build:
       context: ../..
       dockerfile: deploy/minio/Dockerfile
-    user: "0:0"
     entrypoint: ["/bin/sh", "/opt/supportflow/init_minio_buckets.sh"]
     environment:
       MINIO_ROOT_USER: ${TEST_MINIO_USER:?required}
       MINIO_ROOT_PASSWORD: ${TEST_MINIO_INIT_PASSWORD:?required}
       MINIO_DEFAULT_BUCKET: ${TEST_MINIO_BUCKET:?required}
-      MINIO_INIT_MAX_ATTEMPTS: "1"
+      MINIO_INIT_MAX_ATTEMPTS: "5"
+      MINIO_INIT_RETRY_DELAY_SECONDS: "1"
     volumes:
       - ../../scripts/init_minio_buckets.sh:/opt/supportflow/init_minio_buckets.sh:ro
     depends_on:
@@ -36,7 +36,6 @@ services:
     build:
       context: ../..
       dockerfile: deploy/minio/Dockerfile
-    user: "0:0"
     entrypoint: ["/bin/sh", "-c", "exit 0"]
     depends_on:
       minio-init:
