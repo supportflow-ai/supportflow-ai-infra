@@ -3,7 +3,7 @@
     "api-1": {
       "build": {
         "context": "${BACKEND_PATH:-../ai-it-service-desk}",
-        "dockerfile": "src/backend/ServiceDesk.Api/Dockerfile"
+        "dockerfile": "${BACKEND_API_DOCKERFILE:-src/backend/Hosts/Api/Dockerfile}"
       },
       "ports": [
         "127.0.0.1:5000:8080"
@@ -12,7 +12,7 @@
     "api-2": {
       "build": {
         "context": "${BACKEND_PATH:-../ai-it-service-desk}",
-        "dockerfile": "src/backend/ServiceDesk.Api/Dockerfile"
+        "dockerfile": "${BACKEND_API_DOCKERFILE:-src/backend/Hosts/Api/Dockerfile}"
       },
       "ports": [
         "127.0.0.1:5001:8080"
@@ -21,13 +21,13 @@
     "worker": {
       "build": {
         "context": "${BACKEND_PATH:-../ai-it-service-desk}",
-        "dockerfile": "src/backend/ServiceDesk.Worker/Dockerfile"
+        "dockerfile": "${BACKEND_WORKER_DOCKERFILE:-src/backend/Hosts/Worker/Dockerfile}"
       }
     },
     "migrate": {
       "build": {
         "context": "${BACKEND_PATH:-../ai-it-service-desk}",
-        "dockerfile": "${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/ServiceDesk.Migrator/Dockerfile}"
+        "dockerfile": "${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/Hosts/Migrator/Dockerfile}"
       },
       "environment": {
         "SeedDemo__Enabled": "true",
@@ -37,7 +37,7 @@
     "seed-roles": {
       "build": {
         "context": "${BACKEND_PATH:-../ai-it-service-desk}",
-        "dockerfile": "${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/ServiceDesk.Migrator/Dockerfile}"
+        "dockerfile": "${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/Hosts/Migrator/Dockerfile}"
       }
     },
     "frontend": {

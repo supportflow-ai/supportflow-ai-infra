@@ -77,7 +77,7 @@ services:
     container_name: supportflow-system-migration
     build:
       context: ../../ai-it-service-desk
-      dockerfile: ${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/ServiceDesk.Migrator/Dockerfile}
+      dockerfile: ${BACKEND_MIGRATOR_DOCKERFILE:-src/backend/Hosts/Migrator/Dockerfile}
     command: ["migrate"]
     environment:
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}
@@ -98,7 +98,7 @@ services:
     container_name: supportflow-system-api-1
     build:
       context: ../../ai-it-service-desk
-      dockerfile: src/backend/ServiceDesk.Api/Dockerfile
+      dockerfile: ${BACKEND_API_DOCKERFILE:-src/backend/Hosts/Api/Dockerfile}
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: 8080
@@ -134,7 +134,7 @@ services:
     container_name: supportflow-system-api-2
     build:
       context: ../../ai-it-service-desk
-      dockerfile: src/backend/ServiceDesk.Api/Dockerfile
+      dockerfile: ${BACKEND_API_DOCKERFILE:-src/backend/Hosts/Api/Dockerfile}
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: 8080
@@ -170,7 +170,7 @@ services:
     container_name: supportflow-system-worker
     build:
       context: ../../ai-it-service-desk
-      dockerfile: src/backend/ServiceDesk.Worker/Dockerfile
+      dockerfile: ${BACKEND_WORKER_DOCKERFILE:-src/backend/Hosts/Worker/Dockerfile}
     environment:
       DOTNET_ENVIRONMENT: Production
       Database__ConnectionString: Host=postgres;Port=5432;Database=${POSTGRES_DB:-servicedesk};Username=${POSTGRES_USER:-servicedesk};Password=${POSTGRES_PASSWORD}

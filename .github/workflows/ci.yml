@@ -106,18 +106,29 @@ jobs:
           repository: supportflow-ai/ai-it-service-desk-web
           ref: ${{ steps.sources.outputs.web }}
           path: _sources/web
-      - name: Xác định Dockerfile của công cụ migration theo SHA đã ghim
+      - name: Xác định Dockerfile của backend theo SHA đã ghim
         run: |
-          current=src/backend/ServiceDesk.Migrator/Dockerfile
-          legacy=src/backend/ServiceDesk.Database/Dockerfile
-          if [[ -f "$BACKEND_PATH/$current" ]]; then
-            echo "BACKEND_MIGRATOR_DOCKERFILE=$current" >> "$GITHUB_ENV"
-          elif [[ -z "$SMOKE_BACKEND_SHA" && -f "$BACKEND_PATH/$legacy" ]]; then
-            echo "BACKEND_MIGRATOR_DOCKERFILE=$legacy" >> "$GITHUB_ENV"
-          else
-            echo "::error::SHA backend đã ghim thiếu Dockerfile cho công cụ migration."
+          # Thử lần lượt bố cục mới (Hosts/<Host>), bố cục trước đó (ServiceDesk.<Host>) và,
+          # chỉ với SHA trong sources.lock.json, bố cục cũ nhất của công cụ migration.
+          pick() {
+            local variable=$1; shift
+            local candidate
+            for candidate in "$@"; do
+              if [[ -f "$BACKEND_PATH/$candidate" ]]; then
+                echo "$variable=$candidate" >> "$GITHUB_ENV"
+                return 0
+              fi
+            done
+            echo "::error::SHA backend đã ghim thiếu Dockerfile cho $variable."
             exit 1
+          }
+          legacy_migrator=()
+          if [[ -z "$SMOKE_BACKEND_SHA" ]]; then
+            legacy_migrator=(src/backend/ServiceDesk.Database/Dockerfile)
           fi
+          pick BACKEND_API_DOCKERFILE src/backend/Hosts/Api/Dockerfile src/backend/ServiceDesk.Api/Dockerfile
+          pick BACKEND_WORKER_DOCKERFILE src/backend/Hosts/Worker/Dockerfile src/backend/ServiceDesk.Worker/Dockerfile
+          pick BACKEND_MIGRATOR_DOCKERFILE src/backend/Hosts/Migrator/Dockerfile src/backend/ServiceDesk.Migrator/Dockerfile "${legacy_migrator[@]}"
       - name: Set up smoke test runtime
         uses: actions/setup-node@v4
         with:

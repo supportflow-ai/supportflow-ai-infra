@@ -38,6 +38,35 @@ flowchart TD
 
 Khi cập nhật một giao diện giữa các kho, sửa hợp đồng và kiểm thử ở kho sở hữu trước. Ghim phiên bản nguồn ở kho tiêu thụ, sau đó cập nhật phần tóm tắt và mốc đối chiếu ở đây. Các đặc tả backend có mốc cũ vẫn phục vụ truy vết và thảo luận chính sách. [Danh mục tài liệu backend](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/README.md) · [Quyết định nghiệp vụ còn mở](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/architecture/pending-business-decisions.md)
 
+## Rà soát lại ngày 13/11/2026
+
+Bảng mốc ở trên giữ nguyên làm mốc của bản chụp 05/11/2026. Lần rà soát này đối chiếu các khẳng định kiểm chứng được bằng mã và hợp đồng với trạng thái hiện tại của các kho.
+
+| Kho | Mốc hiện tại | Thay đổi kể từ bản chụp (theo tiêu đề commit) |
+| --- | --- | --- |
+| `ai-it-service-desk` | `main` `97ab047`, `dev` `07ce07a` | B1-PR3 (#64): Agent chỉ đọc phiếu của nhóm hỗ trợ đang hoạt động mà mình thuộc hoặc phiếu được phân công trực tiếp, Admin đọc toàn hệ thống ([ADR-016](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/adr/ADR-016-support-team-routing-and-agent-scope.md)); B3 (#65): hạn mức tệp đính kèm theo phiếu, xử lý lock timeout khi xác nhận; đổi cấu trúc thư mục (`Hosts`, `Platform`) và tên công cụ `Migrator` |
+| `ai-it-service-desk-web` | `main` `935c2df`, `dev` `386d709` | Làm mới phiên bằng refresh token, quên và đổi mật khẩu bằng OTP, danh mục phòng ban, danh bạ nhân viên và phân công, cột người xử lý ở hàng đợi, trang giới thiệu, chế độ tối; chỉ Requester thấy mục tạo yêu cầu |
+| `ai-service` | `main` `c4669a7` | Chia khối Markdown, embedding CPU E5, endpoint `POST /v1/knowledge-indexes:prepare`, stage `embeddings` trong Dockerfile; hợp đồng phân loại v1 không đổi |
+| `supportflow-ai-infra` | `main` `cf1cb16` | PostgreSQL chuyển sang pgvector 0.8.1, cấu hình `KnowledgeIndex`, MinIO build từ bản phát hành bảo mật của upstream, đồng bộ Compose với công cụ Migrator |
+
+**Đã kiểm lại và khớp:**
+
+- Hợp đồng AI v1 ở backend và ai-service khớp từng byte (sha256 `ad1d9323…`).
+- Mọi đường dẫn và phương thức trong bảng "API và quyền theo thao tác" của [api-and-access.md](api-and-access.md) vẫn có mặt ở backend `dev@07ce07a`.
+- AI chưa được nối vào luồng xử lý phiếu: không mã nào ngoài module AIAssistance của backend dùng cổng phân loại, và web chưa có lớp API cho AI.
+- Knowledge có API ở backend và giao diện ở web.
+
+**Đã sửa trong tài liệu này:** phạm vi đọc của Agent đã đổi từ B1-PR3; xem phần "Cập nhật sau bản chụp" ở [api-and-access.md](api-and-access.md) và [mvp.md](mvp.md).
+
+**Lệch còn mở, cần phối hợp giữa các kho (không sửa ở đây):**
+
+1. Web ghim snapshot OpenAPI của backend ở `0f189b5` (sha256 `3884d37d…`), còn baseline backend `dev` có hash `c60fa717…`. Không có đường dẫn hay schema mới, nhưng sáu thao tác đổi chi tiết: `POST /api/auth/register`, `/login`, `/refresh`, `/forgot-password`, `/reset-password` và `POST /api/tickets/{id}/attachments/confirm`.
+2. Giao diện web chỉ cho Requester vào `/tickets/new`, trong khi API tạo phiếu cho phép Requester, Agent và Admin (policy `RequireRequester`).
+3. Stack CI smoke (`compose.yaml`) dùng `pgvector/pgvector:pg17`, còn `docker-compose.yml`, `compose.system.yml` và `compose.release.yml` dùng pgvector 0.8.1 trên PostgreSQL 16.
+4. Compose truyền `KnowledgeIndex__BearerToken` cho API và Worker, nhưng backend `dev` chưa có cấu hình hay mã tiêu thụ endpoint chỉ mục Knowledge của ai-service.
+
+**Chưa kiểm lại:** cột "Ràng buộc chính" chi tiết (mã lỗi, `Location`, revision trong query hay body) và hành vi từng màn hình web; các nội dung này vẫn là bản chụp 05/11/2026. Khi nghiệm thu, ghi riêng SHA, môi trường và kết quả chạy thực tế.
+
 ## Phạm vi rà soát
 
 Nội dung tổng hợp từ bản đặc tả hệ thống ngày 05/11/2026 và năm bản Markdown P0 về phạm vi, yêu cầu, ca sử dụng, OpenAPI và phân quyền. Các nhận định hiện trạng dựa trên mã, cấu hình và hợp đồng ở bốn commit trên. Nội dung riêng trong gói hợp đồng P0 v0.2 và v0.3 còn chờ đối chiếu. Khi nghiệm thu, ghi riêng SHA, môi trường và kết quả chạy kiểm thử thực tế.

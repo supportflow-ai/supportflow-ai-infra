@@ -29,7 +29,7 @@ chmod 600 .env
 
 ### Bước 2: Kiểm tra cú pháp Compose
 
-Compose mặc định build từ `src/backend/ServiceDesk.Migrator/Dockerfile` của backend. Khi chạy với checkout backend đã ghim trước lần đổi tên, đặt `BACKEND_MIGRATOR_DOCKERFILE=src/backend/ServiceDesk.Database/Dockerfile` trong tệp môi trường dùng cho Compose.
+Compose mặc định build từ `src/backend/Hosts/{Api,Worker,Migrator}/Dockerfile` của backend. Khi chạy với checkout backend có bố cục cũ hơn, đặt trong tệp môi trường dùng cho Compose: `BACKEND_API_DOCKERFILE`, `BACKEND_WORKER_DOCKERFILE` và `BACKEND_MIGRATOR_DOCKERFILE`. Bố cục trước đợt gom `Hosts` dùng `src/backend/ServiceDesk.<Api|Worker|Migrator>/Dockerfile`; bố cục cũ nhất của công cụ migration là `src/backend/ServiceDesk.Database/Dockerfile`.
 
 ```bash
 docker compose --env-file .env -f compose.system.yml config --quiet
