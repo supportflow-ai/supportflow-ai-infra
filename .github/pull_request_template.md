@@ -35,6 +35,6 @@ python -m unittest discover -s tests/integration -v   # cần Docker, khi đổi
 
 - [ ] CI đạt trên commit mới nhất của PR (kiểm tra Compose, NGINX, MinIO thật, smoke)
 - [ ] Có ít nhất một người khác đánh giá; không tự phê duyệt PR của mình
-- [ ] Tài liệu liên quan đã cập nhật bằng tiếng Việt, hoặc nêu lý do không cần: 
+- [ ] Tài liệu liên quan đã cập nhật bằng tiếng Việt, hoặc nêu lý do không cần:
 - [ ] Không có bí mật thật trong Git, log hay ảnh chụp
 - [ ] Không sửa test hay cấu hình để làm CI xanh
