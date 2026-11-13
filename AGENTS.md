@@ -23,7 +23,7 @@ Tám điều cần nhớ trước khi sửa:
 
 | Đường dẫn | Nội dung |
 | --- | --- |
-| `docker-compose.yml` | Dịch vụ phụ trợ local: PostgreSQL (pgvector 0.8.1, PostgreSQL 16), MinIO, Mailpit, `minio-init` |
+| `docker-compose.yml` | Dịch vụ phụ trợ local: PostgreSQL (pgvector 0.8.1, PostgreSQL 17), MinIO, Mailpit, `minio-init` |
 | `compose.yaml` + `compose.local.yaml` | Stack dùng trong CI smoke, build từ các checkout cạnh nhau (`BACKEND_PATH`, `WEB_PATH`) |
 | `deploy/compose.system.yml` | Toàn hệ thống build từ các kho anh em (Web, 2 API, Worker, AI, PostgreSQL, MinIO, NGINX, migration và seed vai trò) |
 | `deploy/compose.release.yml` | Staging và production dùng năm image theo digest; `DEPLOY_ENV` tách project, network, volume |
@@ -69,7 +69,7 @@ CI ([ci.yml](.github/workflows/ci.yml)) chạy trên push và PR vào `main` ho�
 - **Đường dẫn Dockerfile của backend** do biến `BACKEND_API_DOCKERFILE`, `BACKEND_WORKER_DOCKERFILE`, `BACKEND_MIGRATOR_DOCKERFILE` quyết định, để build được theo SHA backend có bố cục thư mục cũ. CI tự chọn theo SHA đã ghim. Đổi cấu trúc thư mục backend phải cập nhật Compose, workflow và kiểm thử cùng nhau.
 - **Migration chạy trước API và Worker**: `migration` rồi `seed-roles` phải hoàn thành thành công trước khi API và Worker khởi động; kiểm thử CI chứng minh migration lỗi thì chặn cả hai.
 - **Phát hành theo digest:** `assemble_release.py` chỉ ghi `release.json` và `images.env` khi đủ năm image, đúng repository, digest SHA-256 và SHA nguồn đầy đủ; ba image backend phải cùng commit.
-- **Đã biết:** stack CI smoke (`compose.yaml`) dùng `pgvector/pgvector:pg17`, còn `docker-compose.yml`, `compose.system.yml` và `compose.release.yml` dùng pgvector 0.8.1 trên PostgreSQL 16. Smoke trên PostgreSQL 17 không chứng nhận hành vi trên PostgreSQL 16; đừng đổi một bên khi chưa có quyết định thống nhất phiên bản.
+- **Chuẩn PostgreSQL 17** (chủ dự án chốt 2026-11-13): `docker-compose.yml`, `compose.yaml`, `compose.system.yml` và `compose.release.yml` cùng dùng `pgvector/pgvector:0.8.1-pg17-bookworm` ghim digest; khớp VPS dev dùng chung (17.11) và kiểm thử tích hợp backend. Đổi phiên bản chính tiếp theo cần quyết định riêng và kế hoạch di chuyển dữ liệu; volume PostgreSQL 16 cũ không khởi động được dưới 17.
 
 ## 4. Ngôn ngữ và Git
 

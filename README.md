@@ -1,6 +1,6 @@
 # SupportFlow AI — Infrastructure & Gateway Repository (`supportflow-ai-infra`)
 
-Cập nhật 05/11/2026: [runtime Knowledge indexing](docs/infra/knowledge-index-runtime.md) dùng PostgreSQL 16 + pgvector 0.8.1 và embedding CPU offline; xem lưu ý nâng cấp volume Alpine sang Debian trước rollout.
+Cập nhật 05/11/2026: [runtime Knowledge indexing](docs/infra/knowledge-index-runtime.md) dùng PostgreSQL 17 + pgvector 0.8.1 (chuẩn của dự án từ 2026-11-13, trước đó là 16) và embedding CPU offline; xem lưu ý nâng cấp volume (Alpine sang Debian, PostgreSQL 16 sang 17) trước rollout.
 
 Kho lưu trữ hạ tầng và cổng truy cập trung tâm của hệ thống **SupportFlow AI** (Hệ thống IT Service Desk hỗ trợ xử lý và phân loại phiếu bằng AI).
 
@@ -9,7 +9,7 @@ Kho lưu trữ hạ tầng và cổng truy cập trung tâm của hệ thống *
 ## 1. Vai trò kiến trúc
 
 Theo [ADR-008](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/adr/ADR-008-docker-compose-nginx.md) và [ADR-012](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/adr/ADR-012-ai-contract-and-future-transport.md), kho `supportflow-ai-infra` giữ các trách nhiệm độc quyền:
-1. **Dịch vụ phụ trợ Local Dev (`docker-compose.yml`)**: Cung cấp PostgreSQL 16 với pgvector trên Debian, MinIO S3 Object Storage và Mailpit cho lập trình viên chạy local mà không cần cài đặt phần mềm phụ trợ trực tiếp trên máy host.
+1. **Dịch vụ phụ trợ Local Dev (`docker-compose.yml`)**: Cung cấp PostgreSQL 17 với pgvector trên Debian, MinIO S3 Object Storage và Mailpit cho lập trình viên chạy local mà không cần cài đặt phần mềm phụ trợ trực tiếp trên máy host.
 2. **Cổng NGINX Gateway & Cân bằng tải (`nginx/`)**:
    - Định tuyến `/` tới giao diện người dùng SPA (`ai-it-service-desk-web`).
    - Định tuyến `/api/` tới cụm máy chủ backend (`backend_cluster`: `api-1:8080` và `api-2:8080`).
@@ -67,7 +67,7 @@ supportflow-ai-infra/
 
 ### Phát triển Local (Chỉ chạy DB & Storage phụ trợ)
 ```bash
-# 1. Khởi động PostgreSQL 16 và MinIO
+# 1. Khởi động PostgreSQL 17 và MinIO
 cp example.env .env
 docker compose up -d
 

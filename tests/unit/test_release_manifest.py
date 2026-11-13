@@ -150,7 +150,7 @@ class ReleaseComposeTests(unittest.TestCase):
 
     def test_knowledge_pipeline_uses_pgvector_and_internal_cpu_embeddings(self):
         services = self.config("staging")["services"]
-        self.assertRegex(services["postgres"]["image"], r"^pgvector/pgvector:0\.8\.1-pg16-bookworm@sha256:[a-f0-9]{64}$")
+        self.assertRegex(services["postgres"]["image"], r"^pgvector/pgvector:0\.8\.1-pg17-bookworm@sha256:[a-f0-9]{64}$")
         ai = services["ai-service"]
         self.assertNotIn("ports", ai)
         self.assertEqual(ai["environment"]["SUPPORTFLOW_AI_EMBEDDING_PROVIDER"], "local-e5")

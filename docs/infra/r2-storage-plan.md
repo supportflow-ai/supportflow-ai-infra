@@ -92,7 +92,7 @@ Thu hồi token ngay trên Cloudflare, tạo token mới và phát lại cho nh�
 
 ### 4.3 Chặn khóa lọt vào Git
 
-- Hiện **quét bí mật và bảo vệ khi push (push protection) của GitHub đang tắt ở cả bốn kho** (đo 2026-11-13 qua API; các kho đều công khai). Đề xuất bật cho cả bốn kho; việc này cần quyền quản trị kho và thay đổi cài đặt kho nên chủ dự án quyết định.
+- **Quét bí mật và bảo vệ khi push (push protection) của GitHub đã được bật ở cả bốn kho ngày 2026-11-13** (trước đó đang tắt; các kho đều công khai). Kiểm tra lại bằng `gh api repos/supportflow-ai/<kho>` (trường `security_and_analysis`).
 - `.gitignore` của backend và web mới bỏ qua `.env`, `.env.local`, `.env.*.local`; thiếu `.env.staging`, `.env.production`. Hai kho này cần thêm `.env.*` kèm `!.env.example`. Kho infra và ai-service đã có.
 - `example.env`, `.env.example` chỉ chứa chỗ giữ chỗ (`<ACCOUNT_ID>`, `<ACCESS_KEY_ID>`); Compose dùng cú pháp bắt buộc `${R2_ENDPOINT:?Set R2_ENDPOINT}` để thiếu biến thì dừng thay vì dùng giá trị mặc định.
 - Tùy chọn: một bước quét bí mật trong CI (ví dụ gitleaks) làm lớp bảo vệ thứ hai.
@@ -160,12 +160,11 @@ Theo dõi dung lượng và số thao tác của từng bucket trên bảng đi�
 
 ## 8. Quyết định còn mở
 
-1. Bật quét bí mật và push protection cho bốn kho (cần quyền quản trị).
-2. Loại token cho nhóm: thuộc tài khoản hay thuộc người tạo.
-3. Tên bucket và tài khoản Cloudflare dùng cho từng môi trường; ai giữ quyền quản trị tài khoản.
-4. Sao lưu, lưu giữ và quyền xóa tệp đã xác nhận (phần còn mở của DEC-07).
-5. Quy tắc xóa tự động của bucket `dev` (30 ngày hay không).
-6. Có thêm bước quét bí mật trong CI hay không.
+1. Loại token cho nhóm: thuộc tài khoản hay thuộc người tạo.
+2. Tên bucket và tài khoản Cloudflare dùng cho từng môi trường; ai giữ quyền quản trị tài khoản.
+3. Sao lưu, lưu giữ và quyền xóa tệp đã xác nhận (phần còn mở của DEC-07).
+4. Quy tắc xóa tự động của bucket `dev` (30 ngày hay không).
+5. Có thêm bước quét bí mật trong CI hay không.
 
 ## Nguồn (Cloudflare, tra cứu 2026-11-13)
 

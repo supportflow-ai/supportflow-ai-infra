@@ -56,14 +56,13 @@ Bảng mốc ở trên giữ nguyên làm mốc của bản chụp 05/11/2026. L
 - AI chưa được nối vào luồng xử lý phiếu: không mã nào ngoài module AIAssistance của backend dùng cổng phân loại, và web chưa có lớp API cho AI.
 - Knowledge có API ở backend và giao diện ở web.
 
-**Đã sửa trong tài liệu này:** phạm vi đọc của Agent đã đổi từ B1-PR3; xem phần "Cập nhật sau bản chụp" ở [api-and-access.md](api-and-access.md) và [mvp.md](mvp.md).
+**Đã sửa:** phiên bản PostgreSQL đã thống nhất là 17 ngày 2026-11-13 (trước đó stack CI smoke dùng 17 còn local, system, release dùng 16); phạm vi đọc của Agent đã đổi từ B1-PR3; xem phần "Cập nhật sau bản chụp" ở [api-and-access.md](api-and-access.md) và [mvp.md](mvp.md).
 
 **Lệch còn mở, cần phối hợp giữa các kho (không sửa ở đây):**
 
 1. Web ghim snapshot OpenAPI của backend ở `0f189b5` (sha256 `3884d37d…`), còn baseline backend `dev` có hash `c60fa717…`. Không có đường dẫn hay schema mới, nhưng sáu thao tác đổi chi tiết: `POST /api/auth/register`, `/login`, `/refresh`, `/forgot-password`, `/reset-password` và `POST /api/tickets/{id}/attachments/confirm`.
-2. Giao diện web chỉ cho Requester vào `/tickets/new`, trong khi API tạo phiếu cho phép Requester, Agent và Admin (policy `RequireRequester`).
-3. Stack CI smoke (`compose.yaml`) dùng `pgvector/pgvector:pg17`, còn `docker-compose.yml`, `compose.system.yml` và `compose.release.yml` dùng pgvector 0.8.1 trên PostgreSQL 16.
-4. Compose truyền `KnowledgeIndex__BearerToken` cho API và Worker, nhưng backend `dev` chưa có cấu hình hay mã tiêu thụ endpoint chỉ mục Knowledge của ai-service.
+2. Giao diện web chỉ cho Requester vào `/tickets/new`, trong khi API tạo phiếu cho phép Requester, Agent và Admin (policy `RequireRequester`). Chủ dự án xác nhận 2026-11-13: Agent và Admin cũng phải tạo được; việc cần sửa ở web được liệt kê trong `docs/architecture/api-baseline.md` của kho web.
+3. Compose truyền `KnowledgeIndex__BearerToken` cho API và Worker, nhưng backend `dev` chưa có cấu hình hay mã tiêu thụ endpoint chỉ mục Knowledge của ai-service. Chủ dự án chốt 2026-11-13: backend sẽ tiêu thụ; kế hoạch ở `docs/architecture/ai-integration-plan.md` của kho backend.
 
 **Chưa kiểm lại:** cột "Ràng buộc chính" chi tiết (mã lỗi, `Location`, revision trong query hay body) và hành vi từng màn hình web; các nội dung này vẫn là bản chụp 05/11/2026. Khi nghiệm thu, ghi riêng SHA, môi trường và kết quả chạy thực tế.
 

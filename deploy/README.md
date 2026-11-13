@@ -1,6 +1,6 @@
 # Hướng dẫn triển khai hệ thống toàn diện (System Deployment Runbook)
 
-Tài liệu này hướng dẫn triển khai toàn bộ hệ thống SupportFlow AI (Web, 2 Node API Backend, Worker, AI Service, PostgreSQL 16, MinIO, NGINX Gateway) sử dụng Docker Compose trên môi trường Staging/Production VPS.
+Tài liệu này hướng dẫn triển khai toàn bộ hệ thống SupportFlow AI (Web, 2 Node API Backend, Worker, AI Service, PostgreSQL 17, MinIO, NGINX Gateway) sử dụng Docker Compose trên môi trường Staging/Production VPS.
 
 ---
 
