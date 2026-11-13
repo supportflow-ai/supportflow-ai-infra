@@ -1,6 +1,6 @@
 # Hướng dẫn Môi trường Phát triển Cục bộ (Local Development Guide)
 
-Tài liệu này hướng dẫn thiết lập môi trường phát triển cục bộ cho lập trình viên trên hệ thống SupportFlow AI.
+Tài liệu này hướng dẫn thiết lập môi trường phát triển cục bộ cho lập trình viên trên hệ thống SupportFlow AI. Quy trình làm việc chung của dự án ở [cẩm nang](../team-handbook.md).
 
 ---
 
@@ -51,15 +51,18 @@ python scripts/run_backend.py --no-build api
 ```
 Backend API sẽ lắng nghe tại `http://localhost:5000`.
 
-### Bước 3: Khởi động Dịch vụ AI (Python)
+### Bước 3 (tùy chọn): Khởi động Dịch vụ AI (Python)
 Mở terminal riêng tại thư mục `ai-service`:
 
 ```bash
 cd ../ai-service
 
-# Cài đặt gói qua uv và chạy dev server
-uv sync
-uv run uvicorn supportflow_ai.main:app --host 127.0.0.1 --port 8000 --reload
+# Tạo venv, cài đặt theo README của ai-service rồi chạy dev server
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m pip install -r requirements-runtime.lock -e ".[dev]"
+cp .env.example .env             # đặt SUPPORTFLOW_AI_SERVICE_TOKEN riêng, không commit
+uvicorn supportflow_ai.main:create_app --factory --host 127.0.0.1 --port 8000 --reload
 ```
 AI Service sẵn sàng nhận yêu cầu S2S tại `http://localhost:8000`.
 
@@ -69,7 +72,7 @@ Mở terminal riêng tại thư mục `ai-it-service-desk-web`:
 ```bash
 cd ../ai-it-service-desk-web
 
-npm install
+npm ci
 npm run dev
 ```
 Frontend Vite sẵn sàng tại `http://localhost:5173`.

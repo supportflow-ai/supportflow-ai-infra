@@ -16,6 +16,7 @@ Theo [ADR-008](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/do
    - Chặn tuyệt đối mọi truy cập công khai vào `/internal/` và port của `ai-service` (bảo đảm an toàn S2S).
 3. **Triển khai toàn hệ thống (`deploy/compose.system.yml`)**: Điều phối khởi động toàn bộ stack gồm Web, 2 API nodes, Worker, AI Service, PostgreSQL, MinIO và NGINX Gateway.
 4. **Kiểm thử khói tự động (`scripts/run_smoke_tests.py`, `tests/smoke/`)**: Xác minh tính thông suốt của cổng gateway sau khi triển khai.
+5. **Bản phát hành (`deploy/compose.release.yml`, `sources.lock.json`)**: Staging và production chạy năm image theo digest; `sources.lock.json` ghim SHA nguồn của ba kho. Nâng phiên bản là quyết định phát hành.
 
 > **Ranh giới quan trọng**: Kho này **không** sở hữu mã nguồn ứng dụng và **không** chứa file migration SQL. Toàn quyền sở hữu schema cơ sở dữ liệu thuộc về `ai-it-service-desk` (EF Core).
 
@@ -25,34 +26,38 @@ Theo [ADR-008](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/do
 
 ```text
 supportflow-ai-infra/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   # CI kiểm tra cú pháp Compose và cấu hình NGINX
-├── deploy/                          # Môi trường Staging / Production toàn diện
-│   ├── .env.example
-│   ├── compose.system.yml           # Toàn hệ thống, gồm các tác vụ migration, seed vai trò và init MinIO
+├── .github/workflows/ci.yml         # CI: kiểm tra Compose và NGINX, MinIO thật, smoke trên stack dùng một lần
+├── deploy/
+│   ├── compose.system.yml           # Toàn hệ thống build từ các kho anh em, gồm migration, seed vai trò, init MinIO
+│   ├── compose.release.yml          # Staging/production dùng năm image theo digest
 │   ├── example.env                  # Bản mẫu cấu hình cho VPS
+│   ├── minio/Dockerfile             # Build MinIO từ bản phát hành bảo mật của upstream
+│   ├── nginx/nginx.conf             # Cấu hình gateway cho stack CI (compose.yaml)
+│   ├── smoke/                       # Smoke sau triển khai (smoke-test.sh, smoke-test.ps1)
 │   └── README.md                    # Runbook triển khai chi tiết
 ├── docs/
-│   └── infra/
-│       ├── local-development.md     # Hướng dẫn chi tiết chạy môi trường dev cục bộ
-│       ├── operations-runbook.md    # Sổ tay backup/restore DB, MinIO và troubleshooting
-│       └── repository-boundaries.md # Ma trận ranh giới và trách nhiệm giữa 4 repos
-├── nginx/
-│   ├── conf.d/
-│   │   └── default.conf             # Upstream load balance 2 node API, route / và /api
-│   └── nginx.conf                   # Cấu hình tối ưu NGINX worker, buffer, gzip, logs
+│   ├── project/                     # Tài liệu chung: phạm vi MVP, đối chiếu API và quyền, mốc nguồn
+│   ├── infra/                       # Ranh giới kho, chạy local, vận hành, runtime Knowledge, tiến độ củng cố
+│   ├── release-and-storage.md       # Chuẩn bị bản phát hành và lưu trữ
+│   └── team-handbook.md             # Cẩm nang làm việc chung (bản giống hệt ở bốn kho)
+├── nginx/                           # Cấu hình gateway cho compose.system.yml và compose.release.yml
+│   ├── conf.d/default.conf          # Upstream load balance 2 node API, route / và /api
+│   └── nginx.conf
 ├── scripts/
+│   ├── assemble_release.py          # Ghép manifest phát hành từ năm tệp bằng chứng image
 │   ├── init_minio_buckets.sh        # Tạo bucket MinIO ban đầu
-│   ├── run_smoke_tests.py           # Chạy smoke test gateway (Python stdlib)
+│   ├── run_smoke_tests.py           # Smoke test gateway (Python stdlib)
 │   └── wait_for_services.sh         # Chờ dịch vụ phụ trợ sẵn sàng
+├── storage/pending-upload-lifecycle.json
 ├── tests/
-│   └── smoke/
-│       └── gateway_routing_test.py  # Pytest suite cho CI smoke test
-├── .env.example                     # Biến môi trường mẫu cho local
-├── .gitignore
-├── docker-compose.yml               # Chỉ chạy DB, Storage, Mail cho Local Dev
-├── example.env                      # Bản mẫu dự phòng không bị deny rule
+│   ├── unit/                        # Script init MinIO, manifest phát hành, cấu hình Compose
+│   ├── integration/                 # MinIO thật
+│   └── smoke/                       # Định tuyến gateway
+├── AGENTS.md                        # Quy tắc riêng của kho (cho người và trợ lý AI)
+├── compose.yaml, compose.local.yaml # Stack dùng trong CI smoke, build từ các checkout cạnh nhau
+├── docker-compose.yml               # Dịch vụ phụ trợ local: PostgreSQL, MinIO, Mailpit
+├── sources.lock.json                # SHA nguồn ba kho và digest năm image phát hành
+├── example.env, .env.example, .env.local.example
 └── README.md
 ```
 
@@ -123,3 +128,4 @@ CI integration sẽ kiểm tra việc pull/chạy image; xác minh release GitHu
 - [Hướng dẫn Phát triển Cục bộ](docs/infra/local-development.md)
 - [Sổ tay Vận hành & Khắc phục Sự cố](docs/infra/operations-runbook.md)
 - [Hướng dẫn Triển khai Staging/Production](deploy/README.md)
+- [Cẩm nang làm việc chung](docs/team-handbook.md) (nhánh, commit, PR, giới hạn an toàn) và [AGENTS.md](AGENTS.md) (quy tắc riêng của kho)

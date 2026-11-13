@@ -60,3 +60,5 @@ Web cần phân biệt đang tải, rỗng, lỗi phiên, thiếu quyền và l�
 | Knowledge | Quyết định phạm vi sản phẩm và cách xử lý các endpoint đã có trong bản demo |
 
 Ghi quyết định, người duyệt và tác động trong nguồn nghiệp vụ ở kho sở hữu. [Bảng quyết định backend](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/architecture/pending-business-decisions.md)
+
+**Cập nhật 13/11/2026:** quyết định về quyền Agent và nhóm hỗ trợ (DEC-02) đã được chốt: Agent chỉ đọc phiếu thuộc nhóm hỗ trợ đang hoạt động mà mình là thành viên hoặc được phân công trực tiếp; Admin đọc toàn hệ thống. Bảng trên giữ nguyên nội dung bản chụp 05/11/2026; chi tiết ở [api-and-access.md](api-and-access.md) và [ADR-016](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/adr/ADR-016-support-team-routing-and-agent-scope.md). Các chủ đề còn lại (trạng thái và mở lại, tệp đính kèm, Knowledge) chưa được đối chiếu lại.

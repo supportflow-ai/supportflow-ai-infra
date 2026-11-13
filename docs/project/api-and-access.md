@@ -37,6 +37,16 @@ Revision dương là điều kiện của các lệnh cập nhật, phân công 
 | Snapshot OpenAPI của Web | Snapshot ghim Backend `dev@febb4d7` và khớp từng byte với OpenAPI của Backend `main@bf38ef9` | Khi phát hành chung, kiểm thêm với đúng bản Backend dùng để chạy demo. [Nguồn snapshot](https://github.com/supportflow-ai/ai-it-service-desk-web/blob/ade7af4e1b88e7834c8d9b225f68eb7ebd75f9fe/tests/contracts/backend-source.json) |
 | Hợp đồng revision | Use case bắt buộc revision dương ở các lệnh trên. Một số khai báo trong OpenAPI còn cho phép bỏ qua | Client sinh tự động có thể gửi request bị backend từ chối. [OpenAPI](https://github.com/supportflow-ai/ai-it-service-desk/blob/bf38ef903f46f6ea21f80da44c11d437391a9efb/contracts/backend/openapi-baseline.json) |
 
+## Cập nhật sau bản chụp (13/11/2026)
+
+Các bảng ở trên mô tả mốc 05/11/2026. Những thay đổi sau đó ở backend, đối chiếu với `dev@07ce07a`:
+
+- **Phạm vi đọc của Agent** (B1-PR3, backend #64, [ADR-016](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/docs/adr/ADR-016-support-team-routing-and-agent-scope.md)): Agent chỉ đọc phiếu thuộc nhóm hỗ trợ đang hoạt động mà mình là thành viên, hoặc phiếu được phân công trực tiếp. Bộ lọc áp dụng cho chi tiết, hàng đợi và số lượng, timeline, tệp và lệnh của nhân viên; phiếu ngoài phạm vi trả `404`. Admin đọc toàn hệ thống. Vì vậy cụm "staff xem toàn hệ thống" và hàng đợi "mọi phiếu" trong các bảng trên chỉ đúng với Admin ở mốc hiện tại. Chưa có API quản trị nhóm hỗ trợ.
+- **Tệp đính kèm** (backend #65): hạn mức tệp theo phiếu và xử lý lock timeout khi xác nhận; `POST /tickets/{id}/attachments/confirm` đổi chi tiết phản hồi trong OpenAPI.
+- **Endpoint ngoài bảng MVP:** `POST /auth/refresh`, `/auth/revoke`, `/auth/change-password`, `/auth/forgot-password`, `/auth/reset-password`, `GET /departments`, `PUT /users/{id}/roles` và nhóm `/knowledge/articles` (nháp, xuất bản, lưu trữ, chi tiết, tìm kiếm) đã có ở backend. Đường dẫn đầy đủ nằm trong [OpenAPI backend](https://github.com/supportflow-ai/ai-it-service-desk/blob/main/contracts/backend/openapi-baseline.json).
+
+Snapshot OpenAPI của web chưa theo kịp các thay đổi này; xem mục "Lệch còn mở" ở [tài liệu chung](README.md#rà-soát-lại-ngày-13112026).
+
 ## Giao tiếp Backend–AI
 
 Backend công bố [hợp đồng phân loại v1](https://github.com/supportflow-ai/ai-it-service-desk/blob/bf38ef903f46f6ea21f80da44c11d437391a9efb/contracts/ai/v1/openapi.yaml). Hai bản hợp đồng ở Backend và AI Service khớp từng byte tại mốc rà soát. `POST /v1/ticket-classifications` dùng Bearer riêng giữa các dịch vụ. Backend tính `inputHash`. AI Service kiểm tra định dạng và trả lại nguyên giá trị cùng `requestId`, `ticketId`, `ticketRevision`. Phản hồi chỉ gồm gợi ý phân loại theo hợp đồng. Quyền thay đổi ticket thuộc backend. [Bản ghim AI](https://github.com/supportflow-ai/ai-service/blob/7c0910298c35150cb28ed2a71605b8c4e03a3938/contract.lock.json) · [Căn chỉnh backend–AI](https://github.com/supportflow-ai/ai-service/blob/7c0910298c35150cb28ed2a71605b8c4e03a3938/docs/backend-alignment.md)
