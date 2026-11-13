@@ -1,7 +1,7 @@
 {
   "services": {
     "postgres": {
-      "image": "pgvector/pgvector:pg17",
+      "image": "pgvector/pgvector:0.8.1-pg17-bookworm@sha256:3e8b3adfd27b5707128f60956f62a793c3c9326ea8cfaf0eab7adccb5d700b21",
       "environment": {
         "POSTGRES_USER": "servicedesk",
         "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}",

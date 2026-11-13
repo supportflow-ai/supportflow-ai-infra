@@ -20,7 +20,7 @@ Workspace/
 ## 2. Các bước khởi động môi trường
 
 ### Bước 1: Khởi động dịch vụ phụ trợ (Infra)
-Dịch vụ hạ tầng (PostgreSQL 16, MinIO, Mailpit) chạy qua Docker Compose:
+Dịch vụ hạ tầng (PostgreSQL 17, MinIO, Mailpit) chạy qua Docker Compose:
 
 ```bash
 cd supportflow-ai-infra
@@ -28,8 +28,10 @@ cp example.env .env
 docker compose up -d
 ```
 
+Nếu máy bạn đã có volume dữ liệu PostgreSQL 16 từ trước (`supportflow-postgres-data`), PostgreSQL 17 **không** khởi động được trên dữ liệu đó vì khác phiên bản chính. Dữ liệu chỉ để thử thì tạo lại volume bằng `docker compose down -v` (xóa toàn bộ dữ liệu local, chỉ làm trên máy của bạn sau khi chắc chắn không cần); cần giữ dữ liệu thì `pg_dump` bằng PostgreSQL 16 rồi khôi phục vào bản 17.
+
 Kiểm tra trạng thái sẵn sàng:
-- PostgreSQL 16: `127.0.0.1:5432` (User: `servicedesk`, Pass: `servicedesk_dev_secret_change_me`, DB: `servicedesk`)
+- PostgreSQL 17: `127.0.0.1:5432` (User: `servicedesk`, Pass: `servicedesk_dev_secret_change_me`, DB: `servicedesk`)
 - MinIO API: `127.0.0.1:9000` (Console UI: `http://localhost:9001`)
 - Mailpit UI: `http://localhost:8025`
 
